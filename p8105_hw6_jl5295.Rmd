@@ -12,6 +12,7 @@ library(tidyverse)
 library(modelr)
 library(mgcv)
 library(measurements)
+library(viridis)
 knitr::opts_chunk$set(
 	echo = TRUE,
 	warning = FALSE,
@@ -53,14 +54,55 @@ ppwt: mother’s pre-pregnancy weight (pounds)
 smoken: average number of cigarettes smoked per day during pregnancy
 wtgain: mother’s weight gain during pregnancy (pounds)
 
-Load and clean the data for regression analysis (i.e. convert numeric to factor where appropriate, check for missing data, etc.).
+### Loading and Tidying the Dataset
+```{r load and tidy birthweight.csv}
+birthweight =
+  read.csv("data/birthweight.csv") %>%
+  janitor::clean_names() %>%
+  mutate(
+    babysex = factor(babysex, levels = c(1, 2), labels = c("male", "female")),
+    frace = factor(frace, levels = c(1, 2, 3, 4, 8, 9), labels = c("white", "black", "asian", "puerto rican", "other", "unknown")),
+    mrace = factor(mrace, levels = c(1, 2, 3, 4, 8, 9), labels = c("white", "black", "asian", "puerto rican", "other", "unknown")),
+    malform = factor(malform, levels = c(0, 1), labels = c("absent", "present"))
+  )
+```
+**Comment:** From loading and tidying the data, we confirm that all variables have the appropriate structure (factor, numeric, etc.).
 
+
+### Propose a regression model for birthweight
 Propose a regression model for birthweight. This model may be based on a hypothesized structure for the factors that underly birthweight, on a data-driven model-building process, or a combination of the two. Describe your modeling process and show a plot of model residuals against fitted values – use add_predictions and add_residuals in making this plot.
 
-Compare your model to two others:
+```{r}
+birthweight_base_model =
+  lm(bwt ~ babysex + blength + gaweeks + mheight + smoken, data = birthweight)
+```
+**Comment:** The model we propose includes baby's sex (babysex), baby's head circumference at birth (blength), gestational age in weeks (gaweeks), mother's height in inches (mheight), and average number of cigarettes smoked per day during pregnancy (smoken).
 
-One using length at birth and gestational age as predictors (main effects only)
-One using head circumference, length, sex, and all interactions (including the three-way interaction) between these
+Plot model residuals for birthweight_base_model against the fitted values:
+```{r birthweight_base_model residuals}
+birthweight_residuals_base = modelr::add_residuals(birthweight, birthweight_base_model)
+birthweight_residuals_base = modelr::add_predictions(birthweight_residuals_base, birthweight_base_model)
+
+birthweight_residuals_base %>% 
+  ggplot(aes(x = pred, y = resid)) +
+  geom_point()
+```
+
+
+## Compare this model to two others:
+First model: One using length at birth and gestational age as predictors (main effects only)
+```{r model w/ blength & gaweeks only}
+birthweight_1_model =
+  lm(bwt ~ blength + gaweeks, data = birthweight)
+```
+
+
+Second model: One using head circumference, length, sex, and all interactions (including the three-way interaction) between these
+```{r model w/ bhead, blength, babysex, & interactions}
+birthweight_2_model =
+  lm(bwt ~ bhead + blength + babysex + bhead*blength + bhead*babysex + bhead*babysex + bhead*blength*babysex, data = birthweight)
+```
+
 Make this comparison in terms of the cross-validated prediction error; use crossv_mc and functions in purrr as appropriate.
 
 Note that although we expect your model to be reasonable, model building itself is not a main idea of the course and we don’t necessarily expect your model to be “optimal”.
