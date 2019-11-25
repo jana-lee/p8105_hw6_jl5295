@@ -187,7 +187,29 @@ plot_rsq = boot_rsq %>%
 plot_rsq
 ```
 
+### ln(β̂ 0∗β̂ 1)
+```{r bootstrap for ln, warning = false}
+boot_ln = 
+  boot_straps %>% 
+  mutate(
+    models = map(strap_sample, ~lm(tmax ~ tmin, data = .x)),
+    results = map(models, broom::tidy)) %>% 
+  unnest(cols = c(results)) %>%
+  select(strap_number, term, estimate) %>% 
+  janitor::clean_names() %>% 
+    rename(b0 = intercept, b1 = tmin) %>%
+     mutate(ln_b0b1 = log(b0*b1)) %>%
+  select(-b0, -b1)
+```
 
+### Plot for ln values
+```{r}
+plot_ln = boot_ln %>%
+  ggplot(aes(x = ln_b0b1)) +
+  geom_density(color = "green")
+
+plot_ln
+```
 
 
 
